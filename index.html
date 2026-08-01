@@ -33,9 +33,6 @@
         </div>
         <fieldset class="creator-panel">
           <legend>キャラクリエイト</legend>
-          <label>髪色<input id="hairColor" type="color" value="#77777b" /></label>
-          <label>肌色<select id="skin"><option value="#f4c9aa">ナチュラル</option><option value="#ffe0c6">ライト</option><option value="#c98e6b">ヘルシー</option><option value="#8f5e46">ディープ</option></select></label>
-          <label>服の色<input id="outfitColor" type="color" value="#b6e3ea" /></label>
           <label>アクセサリー<select id="accessory"><option value="none">なし</option><option value="glasses">めがね</option><option value="hairpin">ヘアピン</option><option value="headphones">ヘッドホン</option></select></label>
         </fieldset>
         <fieldset class="animation-panel">
@@ -46,7 +43,7 @@
       </section>
     </main>
 
-    <script src="./AvatarRasterCreator.js?v=14"></script>
+    <script src="./AvatarRasterCreator.js?v=32"></script>
     <script>
       // Avatar.js側と同じ変数名を使うと再宣言エラーになるため、別名で受け取ります。
       const avatarStates = window.AVATAR_STATES;
@@ -92,9 +89,6 @@
       slider.addEventListener('input', () => changeLevel(Number(slider.value)));
       // キャラクリエイトの変更をアバターへ反映します。
       const creatorInputs = {
-        'hair-color': document.querySelector('#hairColor'),
-        skin: document.querySelector('#skin'),
-        'outfit-color': document.querySelector('#outfitColor'),
         accessory: document.querySelector('#accessory'),
       };
       Object.entries(creatorInputs).forEach(([attribute, input]) => {
