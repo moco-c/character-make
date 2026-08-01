@@ -4,8 +4,8 @@ window.AVATAR_STATES=AVATAR_STATES;
 
 class LifeMirrorAvatar extends HTMLElement{
   static get observedAttributes(){return['level','hair-color','skin','outfit-color','accessory','animation','direction'];}
-  constructor(){super();this.attachShadow({mode:'open'});this.frame=0;this.walkTick=0;this.frames={};this.walkImage=new Image();this.walkImage.src='./assets/avatar-threequarter-walk-v2.png';this.walkImage.onload=()=>this.draw();for(let level=1;level<=10;level++){const image=new Image();const version=level===1?'-clean':[2,3,7,8,10].includes(level)?'-v2':'';image.src=`./assets/avatar-states/level-${level}-threequarter-aligned${version}.png`;image.onload=()=>this.draw();this.frames[level]=image;}}
-  connectedCallback(){this.render();this.timer=setInterval(()=>{if(this.getAttribute('animation')==='walk'){this.walkTick++;const delay=this.level<=2?5:this.level<=5?4:3;if(this.walkTick%delay===0)this.frame=(this.frame+1)%4;}this.draw();},100);}
+  constructor(){super();this.attachShadow({mode:'open'});this.frame=0;this.walkTick=0;this.frames={};this.walkImage=new Image();this.walkImage.src='./assets/avatar-threequarter-walk-8-v2-clean.png';this.walkImage.onload=()=>this.draw();for(let level=1;level<=10;level++){const image=new Image();const version=level===1?'-clean':[2,3,7,8,10].includes(level)?'-v2':'';image.src=`./assets/avatar-states/level-${level}-threequarter-aligned${version}.png`;image.onload=()=>this.draw();this.frames[level]=image;}}
+  connectedCallback(){this.render();this.timer=setInterval(()=>{if(this.getAttribute('animation')==='walk'){this.walkTick++;const delay=this.level<=2?2:1;if(this.walkTick%delay===0)this.frame=(this.frame+1)%8;}this.draw();},90);}
   disconnectedCallback(){clearInterval(this.timer);}
   attributeChangedCallback(name){if(!this.isConnected)return;if(name==='animation'||name==='direction'||name==='level')this.render();else this.draw();}
   get level(){return Math.min(10,Math.max(1,Math.round(Number(this.getAttribute('level'))||5)));}
@@ -23,13 +23,14 @@ class LifeMirrorAvatar extends HTMLElement{
       .arm-left{clip-path:polygon(13% 53%,42% 53%,42% 78%,12% 78%);transform-origin:38% 55%;animation:arm-left-idle 4.2s ease-in-out infinite}
       .arm-right{clip-path:polygon(58% 53%,88% 53%,89% 78%,58% 78%);transform-origin:62% 55%;animation:arm-right-idle 4.2s ease-in-out infinite}
       .legs{clip-path:inset(64% 14% 1% 14%);animation:legs-idle 3.2s ease-in-out infinite}
-      .walk canvas{transform-origin:50% 92%;transform:translateY(${fatigue*10-energy*2}px) rotate(${-fatigue*3}deg);filter:brightness(${brightness}) saturate(${saturation}) drop-shadow(0 12px 9px rgba(35,52,60,.18))}
+      .walk canvas{transform-origin:50% 92%;filter:brightness(${brightness}) saturate(${saturation});animation:walk-body .72s linear infinite}
       .walk:after{content:'✦';position:absolute;right:12%;top:20%;color:#ffd94f;font-size:2rem;opacity:${energy>.65?energy:0};text-shadow:-35px 55px 0 #ffe887;animation:sparkle .8s ease-in-out infinite alternate}
       @keyframes head-idle{0%,100%{transform:translateY(1px) rotate(-.45deg)}50%{transform:translateY(-1px) rotate(.45deg)}}
       @keyframes torso-idle{0%,100%{transform:translateY(1px) scale(1)}50%{transform:translateY(-1px) scale(1.003)}}
       @keyframes arm-left-idle{0%,100%{transform:rotate(.7deg)}50%{transform:rotate(-.7deg)}}
       @keyframes arm-right-idle{0%,100%{transform:rotate(-.7deg)}50%{transform:rotate(.7deg)}}
       @keyframes legs-idle{0%,100%{transform:translateY(1px)}50%{transform:translateY(0)}}
+      @keyframes walk-body{0%,50%,100%{transform:translateY(${fatigue*10-energy*2}px) rotate(${-fatigue*3}deg)}25%,75%{transform:translateY(${fatigue*10-energy*2+3}px) rotate(${-fatigue*3}deg)}}
       @keyframes sparkle{to{transform:scale(1.18);opacity:.55}}
       @media(prefers-reduced-motion:reduce){.layer{animation:none!important}.walk:after{animation:none}}
     </style><div class="stage ${walking?'walk':'idle'}" role="img">${layers}</div>`;
@@ -42,19 +43,22 @@ class LifeMirrorAvatar extends HTMLElement{
     // 3.8秒に一度、約200msだけ対応する「閉じ目」の行へ切り替えます。
     const blinkPhase=Date.now()%3800,isBlinking=!walking&&blinkPhase>=3500&&blinkPhase<3700;
     const source=walking?this.walkImage:this.frames[level];if(!canvas||!source.complete||!source.naturalWidth)return;
-    /* Alternate passing and stepping poses so both arms and legs visibly move. */
-    const ctx=canvas.getContext('2d',{willReadFrequently:true}),col=walking?[1,0,3,2][this.frame]:0,columns=walking?4:1,sw=source.naturalWidth/columns,sh=source.naturalHeight,dw=walking?768*(sw/sh):512,dx=walking?(512-dw)/2:0;
-    ctx.clearRect(0,0,512,768);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(source,col*sw,0,sw,sh,dx,0,dw,768);
+    /* The walk sheet has eight intact full-body frames in a 4-by-2 grid. */
+    /* 右脚と左脚が交互に前へ出る順番で8コマを再生します。 */
+    const walkOrder=[0,1,2,3,4,5,6,7],shownFrame=walking?walkOrder[this.frame]:0;
+    const ctx=canvas.getContext('2d',{willReadFrequently:true}),col=walking?shownFrame%4:0,row=walking?Math.floor(shownFrame/4):0,columns=walking?4:1,rows=walking?2:1,sw=source.naturalWidth/columns,sh=source.naturalHeight/rows,dw=512,dx=0;
+    ctx.clearRect(0,0,512,768);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(source,col*sw,row*sh,sw,sh,dx,0,dw,768);
     // 瞬きでは画像を交換せず、同じ場所の目だけを閉じます。
     // そのため、瞬いた瞬間に頭や全身が上下へずれません。
     if(isBlinking)this.drawBlink(ctx,level);
     // 色マスクによる変更は、画像を汚す原因になったため停止しています。
     // 元の高解像度イラストをそのまま表示します。
+    /* アクセサリーは待機画像にだけ重ねます。 */
     const item=walking?'none':this.getAttribute('accessory');ctx.lineWidth=6;ctx.strokeStyle='#49505c';ctx.fillStyle='#f18a9a';
     if(item==='glasses'){ctx.beginPath();ctx.arc(145,145,24,0,Math.PI*2);ctx.arc(215,145,24,0,Math.PI*2);ctx.moveTo(169,145);ctx.lineTo(191,145);ctx.stroke();}
     if(item==='hairpin'){ctx.strokeStyle='#ffd557';ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(224,90);ctx.lineTo(246,73);ctx.moveTo(229,100);ctx.lineTo(251,83);ctx.stroke();}
     if(item==='headphones'){ctx.lineWidth=10;ctx.beginPath();ctx.arc(180,137,86,Math.PI,0);ctx.stroke();ctx.fillRect(86,132,18,52);ctx.fillRect(256,132,18,52);}
-    /* Copy the rendered PNG to each CSS-clipped idle layer. */
+    /* 待機時は同じ画像を各レイヤーへコピーします。 */
     for(const layer of this.shadowRoot.querySelectorAll('canvas'))if(layer!==canvas){const layerContext=layer.getContext('2d');layerContext.clearRect(0,0,512,768);layerContext.drawImage(canvas,0,0);}
     canvas.setAttribute('aria-label',`健康レベル${level}、${AVATAR_STATES[level].name}の手描き風ミニアバター`);
     this.shadowRoot.querySelector('.stage')?.setAttribute('aria-label',`健康レベル${level}、${AVATAR_STATES[level].name}の手描き風ミニアバター`);

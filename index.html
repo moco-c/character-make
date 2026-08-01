@@ -3,101 +3,87 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Life Mirror - 2Dアバターテスト</title>
-    <link rel="stylesheet" href="./styles.css?v=3" />
+    <title>Life Mirror - マイルーム</title>
+    <link rel="stylesheet" href="./styles.css?v=10" />
   </head>
   <body>
-    <main class="test-page">
-      <section class="test-card" aria-labelledby="page-title">
-        <header class="test-header">
+    <main class="room-page">
+      <header class="room-header">
+        <div>
           <p class="eyebrow">LIFE MIRROR</p>
-          <h1 id="page-title">2Dアバター 状態テスト</h1>
-          <p>ボタンまたはスライダーで、健康状態を10段階に切り替えられます。</p>
-        </header>
-
-        <div class="preview-area">
-          <!-- level属性を1〜10にすると、アバターの状態が変わります。 -->
-          <life-mirror-avatar id="avatar" level="5"></life-mirror-avatar>
+          <h1>マイルーム</h1>
         </div>
-
-        <div class="status-panel" aria-live="polite">
+        <div class="health-summary" aria-live="polite">
           <span id="levelBadge" class="level-badge">LEVEL 5</span>
-          <h2 id="statusName">普通</h2>
-          <p id="statusDescription">落ち着いた標準の状態です。</p>
+          <strong id="statusName">普通</strong>
         </div>
+      </header>
 
-        <div class="controls">
-          <label for="levelSlider">健康レベル：<strong id="levelValue">5</strong></label>
+      <section class="room-stage" aria-label="アバターの部屋">
+        <!-- 元の完成画像と同じ座標へ、家具を個別に配置します。 -->
+        <img class="room-item room-window" src="./assets/room/window-matched-clean.png" alt="窓とカーテン" />
+        <img class="room-item room-picture" src="./assets/room/picture-matched-clean.png" alt="壁の絵" />
+        <img class="room-item room-wardrobe" src="./assets/room/wardrobe-matched-clean.png" alt="クローゼット" />
+        <img class="room-item room-plant" src="./assets/room/plant-matched-clean-v2.png" alt="観葉植物" />
+        <img class="room-item room-shelf" src="./assets/room/shelf-matched-clean.png" alt="壁の棚" />
+        <img class="room-item room-bed" src="./assets/room/bed-matched-clean.png" alt="ベッド" />
+        <img class="room-item room-table" src="./assets/room/table-matched-clean.png" alt="ローテーブル" />
+        <img class="room-item room-cushion" src="./assets/room/cushion-matched-clean.png" alt="座布団" />
+        <!-- 既存のアバターコンポーネントを部屋の床に配置します。 -->
+        <life-mirror-avatar
+          id="avatar"
+          class="room-avatar"
+          level="5"
+          animation="idle"
+          direction="right"
+        ></life-mirror-avatar>
+      </section>
+
+      <section class="room-controls" aria-label="アバター操作">
+        <div class="level-control">
+          <label for="levelSlider">健康レベル <strong id="levelValue">5</strong></label>
           <input id="levelSlider" type="range" min="1" max="10" value="5" />
-          <div id="levelButtons" class="level-buttons" aria-label="健康レベルを選ぶ"></div>
         </div>
-        <fieldset class="creator-panel">
-          <legend>キャラクリエイト</legend>
-          <label>アクセサリー<select id="accessory"><option value="none">なし</option><option value="glasses">めがね</option><option value="hairpin">ヘアピン</option><option value="headphones">ヘッドホン</option></select></label>
-        </fieldset>
-        <fieldset class="animation-panel">
-          <legend>アニメーション</legend>
-          <label>動き<select id="animationMode"><option value="idle">待機</option><option value="walk">歩行</option></select></label>
-          <label>向き<select id="direction"><option value="right">右向き</option><option value="left">左向き</option></select></label>
-        </fieldset>
+        <label>
+          動き
+          <select id="animationMode">
+            <option value="idle">待機</option>
+            <option value="walk">歩行</option>
+          </select>
+        </label>
+        <label>
+          向き
+          <select id="direction">
+            <option value="right">右向き</option>
+            <option value="left">左向き</option>
+          </select>
+        </label>
       </section>
     </main>
 
-    <script src="./AvatarRasterCreator.js?v=32"></script>
+    <script src="./AvatarRasterCreator.js?v=40"></script>
     <script>
-      // Avatar.js側と同じ変数名を使うと再宣言エラーになるため、別名で受け取ります。
-      const avatarStates = window.AVATAR_STATES;
-
-      // 画面で使う要素を取得します。
       const avatar = document.querySelector('#avatar');
       const slider = document.querySelector('#levelSlider');
       const levelValue = document.querySelector('#levelValue');
       const levelBadge = document.querySelector('#levelBadge');
       const statusName = document.querySelector('#statusName');
-      const statusDescription = document.querySelector('#statusDescription');
-      const buttonArea = document.querySelector('#levelButtons');
 
-      // 選択されたレベルを、アバターと説明文の両方へ反映します。
+      // スライダーの値をアバターと画面上の表示へ反映します。
       function changeLevel(level) {
-        const state = avatarStates[level];
         avatar.level = level;
-        slider.value = level;
         levelValue.textContent = level;
         levelBadge.textContent = `LEVEL ${level}`;
-        statusName.textContent = state.name;
-        statusDescription.textContent = state.description;
-
-        document.querySelectorAll('.level-button').forEach((button) => {
-          const selected = Number(button.dataset.level) === level;
-          button.classList.toggle('is-selected', selected);
-          button.setAttribute('aria-pressed', String(selected));
-        });
-      }
-
-      // 1〜10のボタンを自動で作ります。
-      for (let level = 1; level <= 10; level += 1) {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'level-button';
-        button.dataset.level = level;
-        button.textContent = level;
-        button.title = avatarStates[level].name;
-        button.addEventListener('click', () => changeLevel(level));
-        buttonArea.append(button);
+        statusName.textContent = window.AVATAR_STATES[level].name;
       }
 
       slider.addEventListener('input', () => changeLevel(Number(slider.value)));
-      // キャラクリエイトの変更をアバターへ反映します。
-      const creatorInputs = {
-        accessory: document.querySelector('#accessory'),
-      };
-      Object.entries(creatorInputs).forEach(([attribute, input]) => {
-        input.addEventListener('input', () => avatar.setAttribute(attribute, input.value));
+      document.querySelector('#animationMode').addEventListener('change', (event) => {
+        avatar.setAttribute('animation', event.target.value);
       });
-      document.querySelector('#animationMode').addEventListener('change', (event) => avatar.setAttribute('animation', event.target.value));
-      document.querySelector('#direction').addEventListener('change', (event) => avatar.setAttribute('direction', event.target.value));
-      avatar.setAttribute('animation', 'idle');
-      avatar.setAttribute('direction', 'right');
+      document.querySelector('#direction').addEventListener('change', (event) => {
+        avatar.setAttribute('direction', event.target.value);
+      });
       changeLevel(5);
     </script>
   </body>
